@@ -23,7 +23,7 @@ USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:52.0) Gecko/20100101 Firefox/52.0"
 ]
 
-BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "MTM1Mzc0OTQ4MTk3OTY0NTk1Mw.G2VqN_.DOU7bAKsYl8EXEgaiHa8GnE_USXBDuFeRCzS2A")  # Use environment variable for security
+BOT_TOKEN = os.getenv("DISCORD_BOT_TOKEN", "#")  # Use environment variable for security
 
 # ─────────────── Utilities ───────────────
 def clear():
