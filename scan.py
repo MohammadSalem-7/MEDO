@@ -1,96 +1,91 @@
-import wifi
-from wifi import Cell
-import time
-from scapy.all import ARP, Ether, srp
-import socket
-import netifaces
+import os
+import subprocess
+import platform
+import ipaddress
+import threading
+from datetime import datetime
 
-def scan_wifi_networks():
-    print("Scanning for nearby Wi-Fi networks...")
+def clear():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+def save_results(filename, content):
+    with open(filename, 'w', encoding='utf-8') as file:
+        file.write(content)
+    print(f"\n💾 Results saved to: {filename}")
+
+# Section 1: Scan nearby Wi-Fi networks
+def scan_wifi():
+    print("🔍 Scanning nearby Wi-Fi networks...\n")
     try:
-        networks = Cell.all('wlan0')  # 'wlan0' is the typical Wi-Fi interface on Android
-        if not networks:
-            print("No Wi-Fi networks found. Ensure Wi-Fi is enabled.")
-            return
+        if platform.system() == "Windows":
+            result = subprocess.check_output("netsh wlan show networks mode=bssid", shell=True, text=True)
+        else:
+            result = subprocess.check_output(["nmcli", "-f", "SSID,SIGNAL,BARS,SECURITY", "dev", "wifi"], text=True)
         
-        for network in networks:
-            ssid = network.ssid if network.ssid else "Hidden SSID"
-            signal = network.signal
-            encryption = network.encryption_type if network.encryption_type else "Open"
-            print(f"Network: {ssid}")
-            print(f"Signal Strength: {signal} dBm")
-            print(f"Encryption: {encryption}")
-            if encryption == "Open":
-                print(f"Warning: {ssid} is an open network (no encryption)!")
-            elif "WPA" not in encryption.upper():
-                print(f"Note: {ssid} uses weak encryption ({encryption}).")
-            print("-" * 40)
-        
-        print(f"Total networks found: {len(networks)}")
-    
+        print(result)
+        save_results("wifi_results.txt", result)
+
     except Exception as e:
-        print(f"Error occurred while scanning Wi-Fi: {str(e)}")
-        print("Ensure Wi-Fi is enabled and you have the necessary permissions.")
+        print(f"⚠️ Error while scanning Wi-Fi: {e}")
 
-def get_local_ip():
-    try:
-        interfaces = netifaces.interfaces()
-        for iface in interfaces:
-            if 'wlan0' in iface:
-                addrs = netifaces.ifaddresses(iface)
-                if netifaces.AF_INET in addrs:
-                    return addrs[netifaces.AF_INET][0]['addr']
-        return None
-    except Exception:
-        return None
+# Section 2: Scan devices on local network using ping
+def ping_ip(ip, active_ips):
+    cmd = f"ping -{'n' if platform.system() == 'Windows' else 'c'} 1 -w 500 {ip}"
+    result = os.system(f"{cmd} > nul 2>&1" if platform.system() == "Windows" else f"{cmd} > /dev/null 2>&1")
+    if result == 0:
+        active_ips.append(ip)
 
-def scan_connected_devices():
-    print("\nScanning for devices on the same network...")
+def scan_devices():
+    print("🔍 Scanning active devices on your network...\n")
+    subnet_input = input("🌐 Enter subnet (e.g., 192.168.1.0/24): ")
+
     try:
-        # Get local IP and network interface
-        local_ip = get_local_ip()
-        if not local_ip:
-            print("Could not determine local IP. Ensure you're connected to a Wi-Fi network.")
-            return
-        
-        # Assume the network is a typical /24 subnet
-        ip_range = ".".join(local_ip.split(".")[:-1]) + ".0/24"
-        
-        # Create ARP request packet
-        arp = ARP(pdst=ip_range)
-        ether = Ether(dst="ff:ff:ff:ff:ff:ff")
-        packet = ether/arp
-        
-        # Send packet and receive responses
-        result = srp(packet, timeout=3, verbose=0)[0]
-        
-        devices = []
-        for sent, received in result:
-            devices.append({'ip': received.psrc, 'mac': received.hwsrc})
-        
-        if not devices:
-            print("No devices found on the network.")
-            return
-        
-        # Display device information
-        print(f"Found {len(devices)} devices on the network:")
-        for device in devices:
-            try:
-                hostname = socket.gethostbyaddr(device['ip'])[0]
-            except socket.herror:
-                hostname = "Unknown"
-            print(f"IP: {device['ip']}")
-            print(f"MAC: {device['mac']}")
-            print(f"Hostname: {hostname}")
-            print("-" * 40)
-    
-    except Exception as e:
-        print(f"Error occurred while scanning devices: {str(e)}")
-        print("Ensure you have the necessary permissions and are connected to a network.")
+        network = ipaddress.IPv4Network(subnet_input, strict=False)
+    except ValueError:
+        print("❌ Invalid subnet format.")
+        return
+
+    active_ips = []
+    threads = []
+
+    print("🔄 Scanning in progress, please wait...")
+
+    for ip in network.hosts():
+        t = threading.Thread(target=ping_ip, args=(str(ip), active_ips))
+        threads.append(t)
+        t.start()
+
+    for t in threads:
+        t.join()
+
+    result_text = f"📅 Scan Time: {datetime.now()}\n\n📶 Active Devices ({len(active_ips)} found):\n"
+    result_text += "\n".join(f"- {ip}" for ip in active_ips)
+
+    print(result_text)
+    save_results("device_results.txt", result_text)
+
+# Main menu
+def main():
+    while True:
+        clear()
+        print("🛠️  M E D O - Network Scanner")
+        print("=" * 35)
+        print("1️⃣  Scan nearby Wi-Fi networks")
+        print("2️⃣  Scan devices on your network")
+        print("3️⃣  Exit")
+        choice = input("\n📥 Select an option: ")
+
+        if choice == '1':
+            scan_wifi()
+        elif choice == '2':
+            scan_devices()
+        elif choice == '3':
+            print("👋 Exiting... Stay safe!")
+            break
+        else:
+            print("❌ Invalid choice!")
+
+        input("\n🔁 Press Enter to return to the main menu...")
 
 if __name__ == "__main__":
-    print("Starting Wi-Fi and Device Scanner...")
-    scan_wifi_networks()
-    print("\n" + "=" * 50 + "\n")
-    scan_connected_devices()
-    time.sleep(1)  # Short pause to ensure scans complete
+    main()
