@@ -1,4 +1,3 @@
-
 import os
 import subprocess
 from yt_dlp import YoutubeDL
@@ -31,9 +30,7 @@ def get_video_info(url):
         return video_formats
 
 def list_quality_options(formats):
-    print(CYAN + "
-Available Qualities:
-" + RESET)
+    print(CYAN + "\nAvailable Qualities:\n" + RESET)
     choices = {}
     for i, f in enumerate(formats):
         res = f.get('format_note') or f.get('height', 'unknown')
@@ -69,7 +66,7 @@ def download_audio(url, path):
         ydl.download([url])
 
 def main():
-    print_banner()
+    print_header()
     url = input(CYAN + "[+] Enter YouTube Video URL: " + RESET).strip()
     print(CYAN + "[1] Download Video\n[2] Download Audio Only (MP3)" + RESET)
     choice = input("Select (1 or 2): ").strip()
