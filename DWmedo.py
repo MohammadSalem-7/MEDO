@@ -7,12 +7,18 @@ from yt_dlp import YoutubeDL
 CYAN = "\033[96m"
 RESET = "\033[0m"
 
-def print_banner():
-    os.system("clear")
-    print(CYAN + "="*50)
-    print(" " * 10 + "MEDO Downloader")
-    print(" " * 7 + "Created by Mohammad Salem")
-    print("="*50 + RESET)
+def print_header():
+    print("="*60)
+    print(r"""    
+███╗   ███╗    ███████╗    ██████╗      ██████╗ 
+████╗ ████║    ██╔════╝    ██╔══██╗    ██╔═══██╗
+██╔████╔██║    █████╗      ██║  ██║    ██║   ██║
+██║╚██╔╝██║    ██╔══╝      ██║  ██║    ██║   ██║
+██║ ╚═╝ ██║    ███████╗    ██████╔╝    ╚██████╔╝
+╚═╝     ╚═╝    ╚══════╝    ╚═════╝      ╚═════╝     
+            Created by Mohammad Salem       
+    """)
+    print("="*60)
 
 def get_download_path():
     return "/data/data/com.termux/files/home/storage/downloads"
